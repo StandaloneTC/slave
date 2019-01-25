@@ -1,0 +1,11 @@
+dependencies {
+    implementation (name:'Inspection-release', ext: 'aar')
+    implementation (name:'Blocks-release', ext: 'aar')
+    implementation (name:'RobotCore-release', ext: 'aar')
+    implementation (name:'Hardware-release', ext: 'aar')
+    implementation (name:'FtcCommon-release', ext: 'aar')
+    implementation (name:'WirelessP2p-release', ext:'aar')
+    implementation 'tech.standalonetc:protocol:0.2.2'
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.1.0'
+}
