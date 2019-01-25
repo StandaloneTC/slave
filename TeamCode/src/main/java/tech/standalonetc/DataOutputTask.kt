@@ -26,8 +26,7 @@ class EncoderDataOutputTask(private val id: Byte,
         get() = RobotPacket.EncoderDataPacket(id, encoder.currentPosition, encoder.velocity)
 }
 
-class VoltageDataOutputTask(networkTools: NetworkTools,
-                            private val voltageSensors: List<VoltageSensor>)
+class VoltageDataOutputTask(private val voltageSensors: List<VoltageSensor>)
     : DataOutputTask() {
     override val packet: Packet<*>
         get() = RobotPacket.VoltageDataPacket(voltageSensors.find { it.voltage > 0 }?.voltage ?: .0)
