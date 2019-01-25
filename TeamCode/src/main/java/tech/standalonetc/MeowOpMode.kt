@@ -32,6 +32,7 @@ class MeowOpMode : OpMode() {
 
     private lateinit var displayMessages: MutableList<Pair<String, String>>
 
+
     private val deviceDescriptionCallback: Packet<*>.() -> ByteArray? = {
         AppUtil.getInstance().runOnUiThread {
             Toast.makeText(AppUtil.getInstance().rootActivity, this.toString(), Toast.LENGTH_SHORT).show()
@@ -131,10 +132,11 @@ class MeowOpMode : OpMode() {
         tasksQueue.add(GamepadDataOutputTask(true, gamepad1))
         tasksQueue.add(GamepadDataOutputTask(false, gamepad2))
         tasksQueue.add(VoltageDataOutputTask(hardwareMap.voltageSensor.toList()))
+
+        last = System.currentTimeMillis()
     }
 
     override fun loop() {
-        last = System.currentTimeMillis()
         telemetry.addLine().addData("Standalone Motor", motors.toString())
         telemetry.addLine().addData("Standalone Servo", servos.toString())
         telemetry.addLine().addData("Standalone CRServo", continuousServos.toString())
@@ -142,7 +144,8 @@ class MeowOpMode : OpMode() {
             telemetry.addLine().addData(caption, string)
         }
         tasksQueue.forEach { it.run(networkTools) }
-        networkTools.broadcastPacket(RobotPacket.OperationPeriodPacket((System.currentTimeMillis()-last).toInt()))
+        networkTools.broadcastPacket(RobotPacket.OperationPeriodPacket((System.currentTimeMillis() - last).toInt()))
+        last = System.currentTimeMillis()
     }
 
     override fun stop() {

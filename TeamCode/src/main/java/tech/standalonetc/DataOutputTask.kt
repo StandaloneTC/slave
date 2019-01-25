@@ -1,9 +1,6 @@
 package tech.standalonetc
 
 import com.qualcomm.robotcore.hardware.*
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
 import tech.standalonetc.protocol.RobotPacket
 import tech.standalonetc.protocol.network.NetworkTools
 import tech.standalonetc.protocol.packet.Packet
@@ -12,10 +9,9 @@ sealed class DataOutputTask {
 
     protected abstract val packet: Packet<*>
 
+
     fun run(networkTools: NetworkTools) {
-        GlobalScope.launch(Dispatchers.IO) {
-            networkTools.broadcastPacket(packet)
-        }
+        networkTools.broadcastPacket(packet)
     }
 }
 
