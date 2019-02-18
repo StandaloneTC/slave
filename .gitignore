@@ -26,3 +26,6 @@ build/
 
 *ASUS_PC_01*
 
+/TeamCode/src/main/java/tech/standalonetc/slave/strucs/
+/TeamCode/src/main/java/tech/standalonetc/slave/Args.kt
+/TeamCode/src/main/java/tech/standalonetc/slave/RemoteControl.kt

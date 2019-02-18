@@ -1,4 +1,4 @@
-package tech.standalonetc
+package tech.standalonetc.slave
 
 import com.qualcomm.robotcore.hardware.*
 import tech.standalonetc.protocol.RobotPacket

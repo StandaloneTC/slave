@@ -1,19 +1,18 @@
-package tech.standalonetc
+package tech.standalonetc.slave
 
-import android.widget.Toast
 import com.qualcomm.robotcore.eventloop.opmode.OpMode
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp
 import com.qualcomm.robotcore.hardware.*
 import com.qualcomm.robotcore.util.RobotLog
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
-import org.firstinspires.ftc.robotcore.internal.system.AppUtil
 import tech.standalonetc.protocol.RobotPacket
 import tech.standalonetc.protocol.network.NetworkTools
 import tech.standalonetc.protocol.network.PacketCallback
 import tech.standalonetc.protocol.packet.Packet
 import tech.standalonetc.protocol.packet.encode
 import java.util.*
+import java.util.concurrent.ConcurrentSkipListSet
 
 @TeleOp
 class MeowOpMode : OpMode() {
@@ -30,27 +29,25 @@ class MeowOpMode : OpMode() {
     private lateinit var colors: MutableMap<Byte, ColorSensor>
     private lateinit var touches: MutableMap<Byte, TouchSensor>
 
-    private lateinit var displayMessages: MutableList<Pair<String, String>>
-
+    private lateinit var displayMessages: ConcurrentSkipListSet<Pair<String, String>>
 
     private val deviceDescriptionCallback: Packet<*>.() -> ByteArray? = {
-        AppUtil.getInstance().runOnUiThread {
-            Toast.makeText(AppUtil.getInstance().rootActivity, this.toString(), Toast.LENGTH_SHORT).show()
-        }
         if (this is RobotPacket.DeviceDescriptionPacket)
             runCatching {
-                hardwareMap[deviceName]
+                deviceName to hardwareMap[deviceName]
             }.also { result ->
                 result.onSuccess {
-                    when (it) {
-                        is DcMotorEx   -> motors[deviceId] = it
-                        is Servo       -> servos[deviceId] = it
-                        is CRServo     -> continuousServos[deviceId] = it
-                        is ColorSensor -> colors[deviceId] = it
-                        is TouchSensor -> touches[deviceId] = it
+                    it.second.also { device ->
+                        when (device) {
+                            is DcMotorEx   -> motors[deviceId] = device
+                            is Servo       -> servos[deviceId] = device
+                            is CRServo     -> continuousServos[deviceId] = device
+                            is ColorSensor -> colors[deviceId] = device
+                            is TouchSensor -> touches[deviceId] = device
+                        }
                     }
-                }
-                result.onFailure {
+
+                }.onFailure {
                     RobotLog.e(javaClass.name, it, "Unable to find device")
                 }
             }.isSuccess.encode()
@@ -59,9 +56,8 @@ class MeowOpMode : OpMode() {
 
     private val workingCallback: PacketCallback = {
         val packet = this
-        AppUtil.getInstance().runOnUiThread {
-            Toast.makeText(AppUtil.getInstance().rootActivity, this.toString(), Toast.LENGTH_SHORT).show()
-        }
+
+        RobotLog.d("received packet $this")
         GlobalScope.launch {
             with(packet) {
                 when (this) {
@@ -94,18 +90,28 @@ class MeowOpMode : OpMode() {
     private var last = 0L
 
     override fun init() {
+        displayMessages = ConcurrentSkipListSet { e1, e2 ->
+            e1.hashCode().compareTo(e2.hashCode())
+        }
+
         motors = mutableMapOf()
         servos = mutableMapOf()
         continuousServos = mutableMapOf()
         colors = mutableMapOf()
         touches = mutableMapOf()
-        displayMessages = Collections.synchronizedList(mutableListOf())
 
-        networkTools = NetworkTools("Robot", "Host", 2, 2, onPacketReceive = workingCallback)
-        networkTools.debug = true
+        networkTools = NetworkTools(
+            "Robot",
+            "Host",
+            2,
+            2,
+            onPacketReceive = workingCallback,
+            loggerConfig = {
+
+            })
         networkTools.broadcastPacket(RobotPacket.OpModeInfoPacket(javaClass.simpleName, RobotPacket.OpModeInfoPacket.INIT))
-        networkTools.setPacketConversion(RobotPacket.Conversion)
         networkTools.setTcpPacketReceiveCallback(deviceDescriptionCallback)
+        telemetry.isAutoClear = false
     }
 
     override fun init_loop() {
@@ -113,6 +119,7 @@ class MeowOpMode : OpMode() {
     }
 
     override fun start() {
+        telemetry.isAutoClear = true
         telemetry.clear()
 
         networkTools.broadcastPacket(RobotPacket.OpModeInfoPacket(javaClass.simpleName, RobotPacket.OpModeInfoPacket.START))
@@ -120,9 +127,9 @@ class MeowOpMode : OpMode() {
 
         motors.forEach { (_, motor) -> motor.mode = DcMotor.RunMode.RUN_WITHOUT_ENCODER }
 
-        RobotLog.i("found devices: motor[${motors.map { "(${it.key},${it.value.deviceName})" }.joinToString()}]")
-        RobotLog.i("found devices: servo[${servos.map { "(${it.key},${it.value.deviceName})" }.joinToString()}]")
-        RobotLog.i("found devices: continuousServos[${continuousServos.map { "(${it.key},${it.value.deviceName})" }.joinToString()}]")
+        RobotLog.i("found devices: motor[${motors.keys.joinToString()}]")
+        RobotLog.i("found devices: servo[${servos.keys.joinToString()}]")
+        RobotLog.i("found devices: continuousServos[${continuousServos.keys.joinToString()}]")
 
         tasksQueue = LinkedList()
 
@@ -137,11 +144,11 @@ class MeowOpMode : OpMode() {
     }
 
     override fun loop() {
-        telemetry.addLine().addData("Standalone Motor", motors.toString())
-        telemetry.addLine().addData("Standalone Servo", servos.toString())
-        telemetry.addLine().addData("Standalone CRServo", continuousServos.toString())
-        displayMessages.forEach { (caption, string) ->
-            telemetry.addLine().addData(caption, string)
+        telemetry.addLine().addData("Standalone Motor", motors.keys.joinToString())
+        telemetry.addLine().addData("Standalone Servo", servos.keys.joinToString())
+        telemetry.addLine().addData("Standalone CRServo", continuousServos.keys.joinToString())
+        displayMessages.forEach {
+            telemetry.addLine().addData(it.first, it.second)
         }
         tasksQueue.forEach { it.run(networkTools) }
         networkTools.broadcastPacket(RobotPacket.OperationPeriodPacket((System.currentTimeMillis() - last).toInt()))
