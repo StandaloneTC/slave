@@ -6,7 +6,10 @@ dependencies {
     implementation(name: 'WirelessP2p-release', ext: 'aar')
     implementation(name: 'tfod-release', ext: 'aar')
     implementation(name: 'tensorflow-lite-0.0.0-nightly', ext: 'aar')
-    implementation 'tech.standalonetc:protocol:0.2.3'
+    implementation('tech.standalonetc:protocol:0.2.4') {
+        exclude group: 'org.slf4j'
+    }
+    compile group: 'org.slf4j', name: 'slf4j-android', version: '1.7.25'
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.1.1'
 }
